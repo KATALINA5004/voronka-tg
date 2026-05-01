@@ -16,6 +16,13 @@ type Props = {
   onOpenImport: () => void;
 };
 
+type ClientColumn = {
+  key: string;
+  title: string;
+  render: (client: Client) => string | number;
+  className?: (client: Client) => string;
+};
+
 export function ClientTable({ clients, stages, activeStageId, onStageTabChange, onAdd, onOpen, onMove, onDelete, onOpenImport }: Props) {
   const [search, setSearch] = useState("");
   const [manager, setManager] = useState("");
@@ -42,7 +49,7 @@ export function ClientTable({ clients, stages, activeStageId, onStageTabChange, 
   });
   const managers = [...new Set(clients.map((c) => c.manager).filter(Boolean))];
   const sources = [...new Set(clients.map((c) => c.source).filter(Boolean))];
-  const columns = [
+  const columns: ClientColumn[] = [
     { key: "repeats", title: "Повторы", render: (c: Client) => c.repeats },
     { key: "date", title: "Дата", render: (c: Client) => (c.date ? new Date(c.date).toLocaleDateString("ru-RU") : "") },
     { key: "fullName", title: "Имя Фамилия", render: (c: Client) => c.fullName },
@@ -65,7 +72,7 @@ export function ClientTable({ clients, stages, activeStageId, onStageTabChange, 
     { key: "invoiceAmount", title: "Счет", render: (c: Client) => c.invoiceAmount },
     { key: "paidAmount", title: "Оплачено", render: (c: Client) => c.paidAmount, className: (c: Client) => (c.paidAmount > 0 ? "success" : "") },
     { key: "bought", title: "Купил", render: (c: Client) => (c.bought ? "да" : "нет") }
-  ] as const;
+  ];
   const visibleColumns = columns.filter((col) => showColumns[col.key]);
 
   useEffect(() => {
