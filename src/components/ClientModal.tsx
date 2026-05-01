@@ -16,9 +16,9 @@ export function ClientModal({ client, stages, onClose, onSave, onAddTouchpoint }
 
   const addPayment = () => setModel((s) => ({ ...s, paidAmount: s.paidAmount + 1000, bought: true }));
   const nextStage = () => {
-    const ids = ["stage1", "stage2", "stage3"] as const;
-    const next = ids[Math.min(ids.indexOf(model.stageId), 2) + 1] || "stage3";
-    setModel((s) => ({ ...s, stageId: next, bought: next === "stage3" ? true : s.bought }));
+    const ids = ["stage1", "stage2", "stage3", "stage4"] as const;
+    const next = ids[Math.min(ids.indexOf(model.stageId), 3) + 1] || "stage4";
+    setModel((s) => ({ ...s, stageId: next, bought: next === "stage4" ? true : s.bought }));
   };
 
   return (

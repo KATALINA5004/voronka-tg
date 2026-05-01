@@ -115,7 +115,7 @@ export function mergeImportedClients(existing: Client[], rows: Record<string, un
     paidAmount: toNum(c.paidAmount),
     repeats: toNum(c.repeats),
     rating: c.rating === null ? null : Number(c.rating) || null,
-    bought: c.stageId === "stage3" ? true : c.bought || c.paidAmount > 0
+    bought: c.stageId === "stage4" ? true : c.bought || c.paidAmount > 0
   }));
 }
 

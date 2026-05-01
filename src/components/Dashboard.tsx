@@ -21,12 +21,8 @@ export function Dashboard({ clients, settings, plan }: Props) {
   const countData = [
     { name: stageNames.stage1, value: metrics.stage1 },
     { name: stageNames.stage2, value: metrics.stage2 },
-    { name: stageNames.stage3, value: metrics.stage3 }
-  ];
-  const moneyData = [
-    { name: "Счет", value: metrics.invoiceTotal },
-    { name: "Оплачено", value: metrics.revenue },
-    { name: "Прибыль", value: metrics.netProfit }
+    { name: stageNames.stage3, value: metrics.stage3 },
+    { name: stageNames.stage4, value: metrics.stage4 }
   ];
 
   return (
@@ -34,12 +30,13 @@ export function Dashboard({ clients, settings, plan }: Props) {
       <section className="kpi-grid">
         <KpiCard title="Всего клиентов" value={clients.length} />
         <KpiCard title="В работе" value={metrics.stage2} />
-        <KpiCard title="Оплатили" value={metrics.stage3} />
+        <KpiCard title={stageNames.stage4} value={metrics.stage4} />
         <KpiCard title="Выручка" value={money(metrics.revenue, settings.currency)} />
         <KpiCard title="Средний чек" value={money(metrics.averageCheck, settings.currency)} />
         <KpiCard title="Чистая прибыль" value={money(metrics.netProfit, settings.currency)} />
         <KpiCard title="Конверсия 1-2" value={percent(metrics.conversion1)} />
         <KpiCard title="Конверсия 2-3" value={percent(metrics.conversion2)} />
+        <KpiCard title="Конверсия 3-4" value={percent(metrics.conversion3)} />
         <KpiCard title="Общая конверсия" value={percent(metrics.totalConversion)} />
       </section>
 
@@ -51,6 +48,8 @@ export function Dashboard({ clients, settings, plan }: Props) {
           <div className="yellow">{stageNames.stage2}: {metrics.stage2}</div>
           <div className="green">Конверсия 2-3: {percent(metrics.conversion2)}</div>
           <div className="yellow">{stageNames.stage3}: {metrics.stage3}</div>
+          <div className="green">Конверсия 3-4: {percent(metrics.conversion3)}</div>
+          <div className="yellow">{stageNames.stage4}: {metrics.stage4}</div>
           <div className="green">Средний чек: {money(metrics.averageCheck, settings.currency)}</div>
           <div className="yellow">Выручка: {money(metrics.revenue, settings.currency)}</div>
           <div className="green">Рентабельность: {percent(plan.profitability)}</div>
@@ -61,11 +60,6 @@ export function Dashboard({ clients, settings, plan }: Props) {
       <section className="card">
         <h3>Клиенты по этапам</h3>
         <div className="chart-wrap"><ResponsiveContainer width="100%" height={220}><BarChart data={countData}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="name" /><YAxis /><Tooltip /><Bar dataKey="value" fill="#229ED9" /></BarChart></ResponsiveContainer></div>
-      </section>
-
-      <section className="card">
-        <h3>Деньги по этапам</h3>
-        <div className="chart-wrap"><ResponsiveContainer width="100%" height={220}><BarChart data={moneyData}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="name" /><YAxis /><Tooltip /><Bar dataKey="value" fill="#b6d7a8" /></BarChart></ResponsiveContainer></div>
       </section>
 
       <section className="card">

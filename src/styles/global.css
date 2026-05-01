@@ -37,7 +37,7 @@ button, input, select { font: inherit; }
 .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; border-top: 1px solid var(--border); background: var(--card); display: grid; grid-template-columns: repeat(4, 1fr); padding: 8px; gap: 6px; }
 .bottom-nav button { border: 0; background: transparent; padding: 8px; border-radius: 10px; display: grid; gap: 3px; justify-items: center; color: var(--muted); }
 .bottom-nav button.active { background: #e8f6fd; color: var(--primary); }
-.tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.tabs { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 6px; }
 .tabs button { border: 1px solid var(--border); border-radius: 10px; background: var(--card); padding: 10px 8px; font-weight: 600; }
 .tabs button.active { background: #e8f6fd; border-color: var(--primary); }
 .toolbar { display: grid; gap: 8px; grid-template-columns: 1fr; }
@@ -52,6 +52,10 @@ th, td { border: 1px solid var(--border); padding: 8px; text-align: left; vertic
 th { background: #f8fafc; position: sticky; top: 0; z-index: 1; }
 .danger { background: #fee2e2; }
 .success { background: #dcfce7; font-weight: 600; }
+.columns-toggler { margin: 8px 0 10px; }
+.columns-toggler summary { cursor: pointer; color: var(--primary); font-weight: 600; margin-bottom: 8px; }
+.columns-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 6px; margin-top: 8px; }
+.columns-grid label { display: flex; align-items: center; gap: 6px; color: var(--muted); }
 .empty-state { text-align: center; padding: 24px; color: var(--muted); }
 .empty-state h3 { color: var(--text); margin-bottom: 0; }
 .modal-backdrop { position: fixed; inset: 0; background: rgba(17, 24, 39, 0.45); display: grid; place-items: center; padding: 12px; z-index: 20; }

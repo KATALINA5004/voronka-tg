@@ -12,13 +12,20 @@ type Props = {
 
 export function Settings({ settings, onSave, onResetDemo, onClearAll, onExportJson, onImportJson }: Props) {
   const [model, setModel] = useState(settings);
+  const setStageName = (index: number, name: string) => {
+    setModel((prev) => ({
+      ...prev,
+      stages: prev.stages.map((stage, i) => (i === index ? { ...stage, name } : stage))
+    }));
+  };
 
   return (
     <div className="stack">
       <section className="card form-grid">
-        <label>Название этапа 1<input value={model.stages[0].name} onChange={(e) => setModel({ ...model, stages: [{ ...model.stages[0], name: e.target.value }, model.stages[1], model.stages[2]] })} /></label>
-        <label>Название этапа 2<input value={model.stages[1].name} onChange={(e) => setModel({ ...model, stages: [model.stages[0], { ...model.stages[1], name: e.target.value }, model.stages[2]] })} /></label>
-        <label>Название этапа 3<input value={model.stages[2].name} onChange={(e) => setModel({ ...model, stages: [model.stages[0], model.stages[1], { ...model.stages[2], name: e.target.value }] })} /></label>
+        <label>Название этапа 1<input value={model.stages[0]?.name || ""} onChange={(e) => setStageName(0, e.target.value)} /></label>
+        <label>Название этапа 2<input value={model.stages[1]?.name || ""} onChange={(e) => setStageName(1, e.target.value)} /></label>
+        <label>Название этапа 3<input value={model.stages[2]?.name || ""} onChange={(e) => setStageName(2, e.target.value)} /></label>
+        <label>Название этапа 4<input value={model.stages[3]?.name || ""} onChange={(e) => setStageName(3, e.target.value)} /></label>
         <label>Рентабельность по умолчанию<input type="number" value={model.defaultProfitability} onChange={(e) => setModel({ ...model, defaultProfitability: Number(e.target.value) })} /></label>
         <label>Средний чек по умолчанию<input type="number" value={model.defaultAverageCheck} onChange={(e) => setModel({ ...model, defaultAverageCheck: Number(e.target.value) })} /></label>
         <label>Валюта<select value={model.currency} onChange={(e) => setModel({ ...model, currency: e.target.value })}><option value="RUB">RUB</option><option value="USD">USD</option><option value="EUR">EUR</option></select></label>

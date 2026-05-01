@@ -10,8 +10,9 @@ const byDays = (days: number) => {
 
 const stages: Stage[] = [
   { id: "stage1", name: "Потенциальные", color: "#ffd966" },
-  { id: "stage2", name: "В работе", color: "#ffd966" },
-  { id: "stage3", name: "Оплатили", color: "#ffd966" }
+  { id: "stage2", name: "Проявлен интерес", color: "#ffd966" },
+  { id: "stage3", name: "Выставление счета", color: "#ffd966" },
+  { id: "stage4", name: "Оплачено", color: "#ffd966" }
 ];
 
 const mkClient = (id: number, stageId: Client["stageId"], paid = 0): Client => ({
@@ -35,16 +36,17 @@ const mkClient = (id: number, stageId: Client["stageId"], paid = 0): Client => (
   invoiceAmount: paid > 0 ? paid * 1.2 : 25000 + id * 1000,
   paidAmount: paid,
   repeats: id % 4,
-  bought: stageId === "stage3" || paid > 0,
+  bought: stageId === "stage4" || paid > 0,
   touchpoints: []
 });
 
 const clients: Client[] = [
   ...Array.from({ length: 12 }, (_, i) => mkClient(i + 1, "stage1", 0)),
   ...Array.from({ length: 7 }, (_, i) => mkClient(i + 13, "stage2", 0)),
-  mkClient(21, "stage3", 35000),
-  mkClient(22, "stage3", 42000),
-  mkClient(23, "stage3", 56000)
+  ...Array.from({ length: 4 }, (_, i) => mkClient(i + 20, "stage3", 0)),
+  mkClient(24, "stage4", 35000),
+  mkClient(25, "stage4", 42000),
+  mkClient(26, "stage4", 56000)
 ];
 
 export const demoData: AppState = {

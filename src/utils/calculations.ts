@@ -15,6 +15,7 @@ export function getFunnelMetrics(clients: Client[], _settings: Settings, plan: P
   const stage1 = getStageClients(clients, "stage1").length;
   const stage2 = getStageClients(clients, "stage2").length;
   const stage3 = getStageClients(clients, "stage3").length;
+  const stage4 = getStageClients(clients, "stage4").length;
   const revenue = clients.reduce((sum, c) => sum + (Number(c.paidAmount) || 0), 0);
   const invoiceTotal = clients.reduce((sum, c) => sum + (Number(c.invoiceAmount) || 0), 0);
   const paidCount = clients.filter((c) => c.paidAmount > 0).length;
@@ -22,8 +23,9 @@ export function getFunnelMetrics(clients: Client[], _settings: Settings, plan: P
   const netProfit = (revenue * plan.profitability) / 100;
   const conversion1 = safeConv(stage2, stage1);
   const conversion2 = safeConv(stage3, stage2);
-  const totalConversion = safeConv(stage3, stage1);
-  return { stage1, stage2, stage3, revenue, invoiceTotal, averageCheck, netProfit, conversion1, conversion2, totalConversion };
+  const conversion3 = safeConv(stage4, stage3);
+  const totalConversion = safeConv(stage4, stage1);
+  return { stage1, stage2, stage3, stage4, revenue, invoiceTotal, averageCheck, netProfit, conversion1, conversion2, conversion3, totalConversion };
 }
 
 export function calculatePlan(plan: Plan) {
@@ -60,7 +62,7 @@ export function calculateFact(clients: Client[], plan: Plan) {
   return {
     leads: m.stage1,
     stage2: m.stage2,
-    stage3: m.stage3,
+    stage3: m.stage4,
     revenue: m.revenue,
     profit: m.netProfit
   };
@@ -82,8 +84,8 @@ export function getRecommendations(clients: Client[], _settings: Settings, plan:
   const overdue = clients.some((c) => c.nextContactDate && new Date(c.nextContactDate) < new Date());
   const rec: string[] = [];
   if (m.stage1 > m.stage2 * 2) rec.push("Нужно перевести больше клиентов в работу");
-  if (m.stage2 > m.stage3 * 2) rec.push("Нужно усилить дожим и оффер");
-  if (m.stage3 < ((plan.plannedLeads * plan.conversion1) / 100) * (plan.conversion2 / 100)) rec.push("Вы отстаете от плана продаж");
+  if (m.stage3 > m.stage4 * 2) rec.push("Нужно усилить дожим и оффер");
+  if (m.stage4 < ((plan.plannedLeads * plan.conversion1) / 100) * (plan.conversion2 / 100)) rec.push("Вы отстаете от плана продаж");
   if (overdue) rec.push("Есть просроченные касания");
   if (rec.length === 0) rec.push("План выполняется хорошо");
   return rec;

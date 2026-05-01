@@ -50,7 +50,7 @@ export function useAppData() {
         const normalized = {
           ...client,
           updatedAt: new Date().toISOString(),
-          bought: client.stageId === "stage3" ? true : client.bought || client.paidAmount > 0
+          bought: client.stageId === "stage4" ? true : client.bought || client.paidAmount > 0
         };
         if (idx === -1) next.unshift(normalized);
         else next[idx] = normalized;
@@ -61,7 +61,7 @@ export function useAppData() {
       },
       moveClient(id: string, stageId: StageId) {
         const next = state.clients.map((c) =>
-          c.id === id ? { ...c, stageId, bought: stageId === "stage3" ? true : c.bought, updatedAt: new Date().toISOString() } : c
+          c.id === id ? { ...c, stageId, bought: stageId === "stage4" ? true : c.bought, updatedAt: new Date().toISOString() } : c
         );
         setPersisted({ ...state, clients: next });
       },

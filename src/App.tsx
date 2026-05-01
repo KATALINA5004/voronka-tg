@@ -14,7 +14,7 @@ import { initTelegram } from "./utils/telegram";
 function App() {
   const { state, actions } = useAppData();
   const [activeScreen, setActiveScreen] = useState<ActiveScreen>("dashboard");
-  const [activeStageId, setActiveStageId] = useState<"stage1" | "stage2" | "stage3">("stage1");
+  const [activeStageId, setActiveStageId] = useState<"stage1" | "stage2" | "stage3" | "stage4">("stage1");
   const [modalClient, setModalClient] = useState<Client | null>(null);
   const [importOpen, setImportOpen] = useState(false);
 
