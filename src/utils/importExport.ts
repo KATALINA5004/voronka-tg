@@ -67,6 +67,7 @@ export function mergeImportedClients(existing: Client[], rows: Record<string, un
     const mapping = detectMap(row);
     const mapped: Partial<Client> = {};
     Object.entries(mapping).forEach(([source, target]) => {
+      if (!target) return;
       mapped[target] = row[source] as never;
     });
     const dedupe = result.find(

@@ -11,7 +11,7 @@ export function getStageClients(clients: Client[], stageId: StageId) {
   return clients.filter((c) => c.stageId === stageId);
 }
 
-export function getFunnelMetrics(clients: Client[], settings: Settings, plan: Plan) {
+export function getFunnelMetrics(clients: Client[], _settings: Settings, plan: Plan) {
   const stage1 = getStageClients(clients, "stage1").length;
   const stage2 = getStageClients(clients, "stage2").length;
   const stage3 = getStageClients(clients, "stage3").length;
