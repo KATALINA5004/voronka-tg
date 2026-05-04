@@ -1,13 +1,17 @@
 import { PROJECT_SLOT_IDS, ProjectSlotId } from "../types";
 
-const LABELS_KEY = "funnel-tg-project-labels-v1";
 const ACTIVE_PROJECT_SESSION_KEY = "funnel-tg-active-project-v1";
 
 export type ProjectLabels = Record<ProjectSlotId, string>;
 
-export function loadProjectLabels(): ProjectLabels {
+function labelsKey(accountLogin: string): string {
+  const slug = accountLogin.replace(/[^a-zA-Z0-9_-]/g, "_");
+  return `funnel-tg-project-labels-v2-${slug}`;
+}
+
+export function loadProjectLabels(accountLogin: string): ProjectLabels {
   try {
-    const raw = localStorage.getItem(LABELS_KEY);
+    const raw = localStorage.getItem(labelsKey(accountLogin));
     if (!raw) return { slot1: "", slot2: "", slot3: "" };
     const p = JSON.parse(raw) as Partial<ProjectLabels>;
     return {
@@ -20,8 +24,8 @@ export function loadProjectLabels(): ProjectLabels {
   }
 }
 
-export function saveProjectLabels(labels: ProjectLabels): void {
-  localStorage.setItem(LABELS_KEY, JSON.stringify(labels));
+export function saveProjectLabels(accountLogin: string, labels: ProjectLabels): void {
+  localStorage.setItem(labelsKey(accountLogin), JSON.stringify(labels));
 }
 
 export function projectTitle(id: ProjectSlotId, labels: ProjectLabels): string {

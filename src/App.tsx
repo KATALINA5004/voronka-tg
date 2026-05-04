@@ -14,19 +14,26 @@ import { moveClientToEndOfTheirStage } from "./utils/clientOrder";
 import { mergeImportedClients } from "./utils/importExport";
 import { AccessGate } from "./components/AccessGate";
 import { initTelegram } from "./utils/telegram";
+import { clearSessionLogin, getSessionLogin } from "./utils/sessionAuth";
+import { isCloudSyncConfigured } from "./utils/cloudWorkspace";
 
-function App() {
+type AuthProps = {
+  accountLogin: string;
+  onLogout: () => void;
+};
+
+function AppAuthenticated({ accountLogin, onLogout }: AuthProps) {
   const [projectSlot, setProjectSlot] = useState<ProjectSlotId>(() => readSavedProjectSlot());
-  const [projectLabels, setProjectLabels] = useState(() => loadProjectLabels());
-  const { state, actions } = useAppData(projectSlot);
+  const [projectLabels, setProjectLabels] = useState(() => loadProjectLabels(accountLogin));
+  const { state, actions, ready } = useAppData(accountLogin, projectSlot);
   const [activeScreen, setActiveScreen] = useState<ActiveScreen>("dashboard");
   const [activeStageId, setActiveStageId] = useState<StageId>("stage1");
   const [modalClient, setModalClient] = useState<Client | null>(null);
   const [importOpen, setImportOpen] = useState(false);
 
   useEffect(() => {
-    initTelegram();
-  }, []);
+    setProjectLabels(loadProjectLabels(accountLogin));
+  }, [accountLogin]);
 
   useEffect(() => {
     writeSavedProjectSlot(projectSlot);
@@ -39,6 +46,17 @@ function App() {
     setModalClient(null);
     setImportOpen(false);
   };
+
+  if (!ready) {
+    return (
+      <div className="access-gate">
+        <div className="access-card">
+          <h2>Загрузка</h2>
+          <p className="muted">{isCloudSyncConfigured() ? "Синхронизация с облаком…" : "Чтение данных…"}</p>
+        </div>
+      </div>
+    );
+  }
 
   const screen = (() => {
     if (activeScreen === "dashboard") return <Dashboard clients={state.clients} settings={state.settings} plan={state.plan} />;
@@ -91,17 +109,17 @@ function App() {
         projectLabels={projectLabels}
         onSave={actions.updateSettings}
         onSaveProjectLabels={(labels) => {
-          saveProjectLabels(labels);
+          saveProjectLabels(accountLogin, labels);
           setProjectLabels(labels);
         }}
         onResetDemo={actions.resetDemo}
         onClearAll={actions.clearAll}
+        onLogout={onLogout}
       />
     );
   })();
 
   return (
-    <AccessGate>
     <Layout
       activeScreen={activeScreen}
       onChange={setActiveScreen}
@@ -134,6 +152,27 @@ function App() {
         />
       )}
     </Layout>
+  );
+}
+
+function App() {
+  const [accountLogin, setAccountLogin] = useState<string | null>(() => getSessionLogin());
+
+  useEffect(() => {
+    initTelegram();
+  }, []);
+
+  return (
+    <AccessGate accountLogin={accountLogin} onLoggedIn={setAccountLogin}>
+      {accountLogin ? (
+        <AppAuthenticated
+          accountLogin={accountLogin}
+          onLogout={() => {
+            clearSessionLogin();
+            setAccountLogin(null);
+          }}
+        />
+      ) : null}
     </AccessGate>
   );
 }

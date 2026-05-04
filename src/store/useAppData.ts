@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AppState, Client, Plan, ProjectSlotId, Settings, StageId, Touchpoint } from "../types";
+import { isCloudSyncConfigured, pullWorkspace, pushWorkspace } from "../utils/cloudWorkspace";
 import { mergeScriptHistoryOnScriptChange } from "../utils/clientScriptHistory";
-import { clearState, initialEmptyState, loadState, saveState } from "../utils/storage";
+import { clearStateLocal, initialEmptyState, loadStateLocal, saveStateLocal } from "../utils/storage";
 
 export function emptyClient(stageId: StageId): Client {
   const now = new Date().toISOString();
@@ -35,16 +36,53 @@ export function emptyClient(stageId: StageId): Client {
   };
 }
 
-export function useAppData(projectSlot: ProjectSlotId) {
-  const [state, setState] = useState<AppState>(() => loadState(projectSlot));
+export function useAppData(accountLogin: string, projectSlot: ProjectSlotId) {
+  const [state, setState] = useState<AppState>(initialEmptyState);
+  const [ready, setReady] = useState(false);
+  const cloudTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    setState(loadState(projectSlot));
-  }, [projectSlot]);
+    let alive = true;
+    setReady(false);
+    (async () => {
+      let next: AppState;
+      if (isCloudSyncConfigured()) {
+        const remote = await pullWorkspace(accountLogin, projectSlot);
+        if (!alive) return;
+        if (remote) next = remote;
+        else next = loadStateLocal(accountLogin, projectSlot);
+      } else {
+        next = loadStateLocal(accountLogin, projectSlot);
+      }
+      if (alive) {
+        setState(next);
+        setReady(true);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [accountLogin, projectSlot]);
+
+  const flushCloud = (next: AppState) => {
+    if (!isCloudSyncConfigured()) return;
+    if (cloudTimer.current) clearTimeout(cloudTimer.current);
+    cloudTimer.current = setTimeout(() => {
+      cloudTimer.current = null;
+      void pushWorkspace(accountLogin, projectSlot, next);
+    }, 700);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (cloudTimer.current) clearTimeout(cloudTimer.current);
+    };
+  }, []);
 
   const setPersisted = (next: AppState) => {
     setState(next);
-    saveState(projectSlot, next);
+    saveStateLocal(accountLogin, projectSlot, next);
+    flushCloud(next);
   };
 
   const actions = useMemo(
@@ -95,12 +133,14 @@ export function useAppData(projectSlot: ProjectSlotId) {
         setPersisted(initialEmptyState);
       },
       clearAll() {
-        clearState(projectSlot);
-        setPersisted(initialEmptyState);
+        clearStateLocal(accountLogin, projectSlot);
+        setState(initialEmptyState);
+        saveStateLocal(accountLogin, projectSlot, initialEmptyState);
+        if (isCloudSyncConfigured()) void pushWorkspace(accountLogin, projectSlot, initialEmptyState);
       },
     }),
-    [state, projectSlot]
+    [state, accountLogin, projectSlot]
   );
 
-  return { state, actions };
+  return { state, actions, ready };
 }

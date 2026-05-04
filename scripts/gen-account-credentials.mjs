@@ -1,0 +1,107 @@
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const codes = `M7KQ-2H9P-4VNC
+B3WR-8L2F-9TXD
+K9NM-5C1J-7YQP
+H4VF-3D8R-2WLS
+P2JC-6N9K-1MHT
+T8QX-4B7Y-5GFR
+L5WD-9F3M-8KNC
+R1YB-7H2P-6TXQ
+N6KC-3J9L-4WDM
+F9GT-2M5R-8YHN
+V3LP-8Q1C-7KJB
+D7WN-4T9H-2MFX
+Y2HC-6K8P-3LQR
+W5MJ-1F4N-9BGT
+C8RK-5Y2J-6HPL
+Q4TF-9M7D-1NWC
+J1NB-3L8K-5YRH
+G6PW-7R4C-2TXM
+X9HD-2W6F-8KQL
+M3LC-8B1Y-4JNP
+B7YK-5T9M-3HFR
+K2NJ-6P4L-9WDC
+H8QF-1R7K-5MGT
+P5WC-9D2J-7YLN
+T3MR-4H8N-1KFB
+L9GD-7Y3P-6TXQ
+R6HF-2K9M-4WJC
+N1BL-8T5R-3YKP
+F4NC-6J2H-9MQD
+V7YT-3W8L-5KFR
+D2PK-9M1C-7HNB
+Y5WJ-4L6R-2TXG
+W8HC-1N9K-6YMP
+C3RL-7F2D-8KQT
+Q9MN-5B4J-3HWR
+J6TD-2Y8P-1LFK
+G1KW-8H3M-9NRC
+X4LF-6R9C-5YJB
+M9HC-3W7N-2KTP
+B2YJ-7L4F-8MQD
+K5NR-1T9K-4HGW
+H7MC-9P2L-6YJF
+P8WK-4D7R-3NTQ
+T1GL-6H8M-5YKC
+L4NF-2J9P-7WRD
+R9YT-5M3C-1KHL
+N3BD-8W6R-4JFQ
+F6LC-1K9N-9HMT
+V2PR-7Y4J-5WGK
+D9HM-3T8L-2NYC
+Y7KF-6R1P-8MJQ
+W4JC-9N5H-3LTR
+C6WP-2M7K-1YFD
+Q1NR-8L4C-6HTK
+J8YD-5T2M-9KWG
+G3HF-7W9R-4NLP`
+  .trim()
+  .split(/\r?\n/)
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+const pairs = codes.map((code, i) => ({
+  login: `vn_${String(i + 1).padStart(3, "0")}`,
+  code
+}));
+
+const header = `/** Пары логин + код. Логины: vn_001 … vn_${String(codes.length).padStart(3, "0")}. */
+`;
+
+const body = `export const ACCOUNT_PAIRS = [
+${pairs.map((p) => `  { login: "${p.login}", code: "${p.code}" }`).join(",\n")}
+] as const;
+
+export type AccountPair = (typeof ACCOUNT_PAIRS)[number];
+
+const LOGIN_TO_CODE = new Map<string, string>(ACCOUNT_PAIRS.map((p) => [normalizeLoginKey(p.login), p.code]));
+
+export function normalizeLoginKey(raw: string): string {
+  return raw.trim().toLowerCase();
+}
+
+export function normalizeAccessCode(raw: string): string | null {
+  const alnum = raw.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+  if (alnum.length !== 12) return null;
+  return \`\${alnum.slice(0, 4)}-\${alnum.slice(4, 8)}-\${alnum.slice(8, 12)}\`;
+}
+
+/** Возвращает канонический логин из списка или null. */
+export function matchCredentials(loginRaw: string, codeRaw: string): string | null {
+  const login = normalizeLoginKey(loginRaw);
+  const code = normalizeAccessCode(codeRaw);
+  if (!login || !code) return null;
+  const expected = LOGIN_TO_CODE.get(login);
+  if (!expected || expected !== code) return null;
+  const row = ACCOUNT_PAIRS.find((p) => normalizeLoginKey(p.login) === login);
+  return row ? row.login : null;
+}
+`;
+
+const outPath = path.join(__dirname, "..", "src", "constants", "accountCredentials.ts");
+fs.writeFileSync(outPath, header + body, "utf8");
+console.log("Wrote", pairs.length, "pairs to", outPath);

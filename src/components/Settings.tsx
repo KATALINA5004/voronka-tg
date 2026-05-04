@@ -10,6 +10,7 @@ type Props = {
   onSaveProjectLabels: (labels: ProjectLabels) => void;
   onResetDemo: () => void;
   onClearAll: () => void;
+  onLogout: () => void;
 };
 
 export function Settings({
@@ -19,7 +20,8 @@ export function Settings({
   onSave,
   onSaveProjectLabels,
   onResetDemo,
-  onClearAll
+  onClearAll,
+  onLogout
 }: Props) {
   const [model, setModel] = useState(settings);
   const [labelDraft, setLabelDraft] = useState<ProjectLabels>(projectLabels);
@@ -145,8 +147,13 @@ export function Settings({
           <button onClick={saveAll}>Сохранить</button>
           <button onClick={onResetDemo}>Сбросить в пустую базу</button>
           <button className="danger-btn" onClick={onClearAll}>Удалить все данные</button>
+          <button type="button" className="ghost" onClick={onLogout}>
+            Выйти из аккаунта
+          </button>
         </div>
-        <p className="muted small">Экспорт и импорт полной базы отключены. Вход — по одноразовому коду с экрана входа.</p>
+        <p className="muted small">
+          Экспорт и импорт полной базы отключены. Вход по логину и коду. Для синхронизации между устройствами задайте в деплое переменные VITE_SUPABASE_URL и VITE_SUPABASE_ANON_KEY и создайте таблицу из файла supabase-schema.sql.
+        </p>
       </section>
     </div>
   );

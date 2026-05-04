@@ -1,10 +1,29 @@
+import { ACCOUNT_PAIRS } from "../constants/accountCredentials";
 import { AppState, Client, ProjectSlotId, Settings, Stage, StageId, StageScripts } from "../types";
 
-/** Старый ключ: при первом открытии слота 1 данные переносятся сюда. */
+/** Один общий файл состояния до появления аккаунтов. */
 export const LEGACY_STORAGE_KEY = "funnel-tg-app-state-v1";
 
-export function getProjectStorageKey(projectId: ProjectSlotId): string {
-  return `funnel-tg-app-state-v1-${projectId}`;
+export function getProjectStorageKey(accountLogin: string, projectId: ProjectSlotId): string {
+  const slug = accountLogin.replace(/[^a-zA-Z0-9_-]/g, "_");
+  return `funnel-tg-data-v2-${slug}-${projectId}`;
+}
+
+/** Только первый аккаунт из списка + слот 1: перенос старого одного файла `funnel-tg-app-state-v1`. */
+function migrateLegacySingleFileInto(accountLogin: string, projectId: ProjectSlotId): void {
+  const primaryLogin = ACCOUNT_PAIRS[0]?.login;
+  if (!primaryLogin || accountLogin !== primaryLogin || projectId !== "slot1") return;
+  const nk = getProjectStorageKey(accountLogin, projectId);
+  if (localStorage.getItem(nk)) return;
+  const raw = localStorage.getItem(LEGACY_STORAGE_KEY);
+  if (!raw) return;
+  try {
+    JSON.parse(raw) as AppState;
+    localStorage.setItem(nk, raw);
+    localStorage.removeItem(LEGACY_STORAGE_KEY);
+  } catch {
+    // ignore
+  }
 }
 
 const defaultStagesEmpty: Stage[] = [
@@ -183,23 +202,19 @@ function migrateParsed(parsed: AppState): AppState {
   return { ...parsed, settings, clients, plan: normalizePlan(parsed.plan) };
 }
 
-function migrateLegacyToSlot1(): void {
-  const newKey = getProjectStorageKey("slot1");
-  if (localStorage.getItem(newKey)) return;
-  const legacy = localStorage.getItem(LEGACY_STORAGE_KEY);
-  if (!legacy) return;
+/** Для ответа API / неизвестного JSON. */
+export function normalizeLoadedState(parsed: unknown): AppState {
+  if (!parsed || typeof parsed !== "object") return initialEmptyState;
   try {
-    JSON.parse(legacy) as AppState;
-    localStorage.setItem(newKey, legacy);
-    localStorage.removeItem(LEGACY_STORAGE_KEY);
+    return migrateParsed(parsed as AppState);
   } catch {
-    // ignore corrupt legacy
+    return initialEmptyState;
   }
 }
 
-export function loadState(projectId: ProjectSlotId): AppState {
-  if (projectId === "slot1") migrateLegacyToSlot1();
-  const key = getProjectStorageKey(projectId);
+export function loadStateLocal(accountLogin: string, projectId: ProjectSlotId): AppState {
+  migrateLegacySingleFileInto(accountLogin, projectId);
+  const key = getProjectStorageKey(accountLogin, projectId);
   const raw = localStorage.getItem(key);
   if (!raw) return initialEmptyState;
   try {
@@ -210,10 +225,10 @@ export function loadState(projectId: ProjectSlotId): AppState {
   }
 }
 
-export function saveState(projectId: ProjectSlotId, state: AppState): void {
-  localStorage.setItem(getProjectStorageKey(projectId), JSON.stringify(state));
+export function saveStateLocal(accountLogin: string, projectId: ProjectSlotId, state: AppState): void {
+  localStorage.setItem(getProjectStorageKey(accountLogin, projectId), JSON.stringify(state));
 }
 
-export function clearState(projectId: ProjectSlotId): void {
-  localStorage.removeItem(getProjectStorageKey(projectId));
+export function clearStateLocal(accountLogin: string, projectId: ProjectSlotId): void {
+  localStorage.removeItem(getProjectStorageKey(accountLogin, projectId));
 }

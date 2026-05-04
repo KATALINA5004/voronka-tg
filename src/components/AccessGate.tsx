@@ -1,58 +1,62 @@
 import { FormEvent, useState } from "react";
-import { isAppUnlocked, normalizeInviteCodeInput, redeemInviteCode, setAppUnlocked } from "../utils/inviteCodeStorage";
+import { matchCredentials } from "../constants/accountCredentials";
+import { setSessionLogin } from "../utils/sessionAuth";
 
 type Props = {
+  accountLogin: string | null;
+  onLoggedIn: (canonicalLogin: string) => void;
   children: React.ReactNode;
 };
 
-export function AccessGate({ children }: Props) {
-  const [unlocked, setUnlocked] = useState(() => isAppUnlocked());
-  const [code, setCode] = useState("");
+export function AccessGate({ accountLogin, onLoggedIn, children }: Props) {
+  const [loginInput, setLoginInput] = useState("");
+  const [codeInput, setCodeInput] = useState("");
   const [error, setError] = useState("");
 
   function onSubmit(e: FormEvent) {
     e.preventDefault();
     setError("");
-    const normalized = normalizeInviteCodeInput(code);
-    if (!normalized) {
-      setError("Нужно ровно 12 латинских букв и цифр (дефисы можно, можно без них).");
+    const canonical = matchCredentials(loginInput, codeInput);
+    if (!canonical) {
+      setError("Неверный логин или код.");
       return;
     }
-    const result = redeemInviteCode(normalized);
-    if (result === "invalid") {
-      setError("Такого кода нет в списке.");
-      return;
-    }
-    if (result === "used") {
-      setError("Этот код уже был использован и больше не действует.");
-      return;
-    }
-    setAppUnlocked();
-    setUnlocked(true);
+    setSessionLogin(canonical);
+    onLoggedIn(canonical);
   }
 
-  if (unlocked) return <>{children}</>;
+  if (accountLogin) return <>{children}</>;
 
   return (
     <div className="access-gate">
       <div className="access-card">
-        <h2>Вход по коду</h2>
+        <h2>Вход в админку</h2>
         <p className="muted">
-          Введите выданный вам одноразовый код. Без кода войти нельзя. Один код — один вход с этого устройства, повторно тот же код не сработает.
+          Введите выданные вам логин и код. Без них доступ закрыт. Если в проекте настроен Supabase (переменные окружения), данные синхронизируются между устройствами.
         </p>
         <form className="access-form" onSubmit={onSubmit}>
           <label>
-            Код
+            Логин
             <input
               type="text"
-              autoComplete="off"
-              autoCapitalize="characters"
+              autoComplete="username"
               spellCheck={false}
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
+              value={loginInput}
+              onChange={(e) => setLoginInput(e.target.value)}
+              placeholder="например vn_001"
             />
           </label>
-          <p className="hint-muted">12 латинских букв и цифр, можно с дефисами по четыре знака.</p>
+          <label>
+            Код
+            <input
+              type="password"
+              autoComplete="current-password"
+              spellCheck={false}
+              value={codeInput}
+              onChange={(e) => setCodeInput(e.target.value)}
+            />
+          </label>
+          <p className="hint-muted">Код: 12 латинских букв и цифр, можно с дефисами по четыре знака.</p>
           {error && <p className="access-error">{error}</p>}
           <button type="submit">Войти</button>
         </form>
