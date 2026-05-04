@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { AppState, Client, Plan, Settings, StageId, Touchpoint } from "../types";
+import { useEffect, useMemo, useState } from "react";
+import { AppState, Client, Plan, ProjectSlotId, Settings, StageId, Touchpoint } from "../types";
 import { mergeScriptHistoryOnScriptChange } from "../utils/clientScriptHistory";
 import { clearState, initialEmptyState, loadState, saveState } from "../utils/storage";
 
@@ -35,12 +35,16 @@ export function emptyClient(stageId: StageId): Client {
   };
 }
 
-export function useAppData() {
-  const [state, setState] = useState<AppState>(() => loadState());
+export function useAppData(projectSlot: ProjectSlotId) {
+  const [state, setState] = useState<AppState>(() => loadState(projectSlot));
+
+  useEffect(() => {
+    setState(loadState(projectSlot));
+  }, [projectSlot]);
 
   const setPersisted = (next: AppState) => {
     setState(next);
-    saveState(next);
+    saveState(projectSlot, next);
   };
 
   const actions = useMemo(
@@ -91,11 +95,11 @@ export function useAppData() {
         setPersisted(initialEmptyState);
       },
       clearAll() {
-        clearState();
+        clearState(projectSlot);
         setPersisted(initialEmptyState);
       },
     }),
-    [state]
+    [state, projectSlot]
   );
 
   return { state, actions };

@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { Client, Stage, StageId, StageScripts } from "../types";
+import { Client, ProjectSlotId, Stage, StageId, StageScripts } from "../types";
 import { CALL_STATUS_CODES, CallStatusCode } from "../utils/callStatus";
 import { EmptyState } from "./EmptyState";
 import { Inbox } from "lucide-react";
 
 type Props = {
+  projectSlot: ProjectSlotId;
   clients: Client[];
   stages: Stage[];
   stageScripts: StageScripts;
@@ -67,6 +68,28 @@ const digraphMap: Record<string, string> = {
   ts: "ц"
 };
 
+const DEFAULT_SHOW_COLUMNS: Record<string, boolean> = {
+  repeats: true,
+  date: true,
+  fullName: true,
+  rating: true,
+  phone: true,
+  source: true,
+  baseType: true,
+  manager: true,
+  comment: true,
+  niche: true,
+  nextContactDate: true,
+  email: true,
+  instagram: true,
+  telegram: true,
+  vk: true,
+  script: true,
+  invoiceAmount: true,
+  paidAmount: true,
+  bought: true
+};
+
 function getFirstName(fullName: string): string {
   const first = fullName.trim().split(/\s+/).find(Boolean);
   if (!first) return "Клиент";
@@ -87,6 +110,7 @@ function getFirstName(fullName: string): string {
 }
 
 export function ClientTable({
+  projectSlot,
   clients,
   stages,
   stageScripts,
@@ -106,29 +130,9 @@ export function ClientTable({
   const [source, setSource] = useState("");
   const [activeScriptIndex, setActiveScriptIndex] = useState(0);
   const [scriptFilter, setScriptFilter] = useState<"all" | "none" | "active" | "0" | "1" | "2">("all");
-  const columnsStorageKey = "funnel-tg-client-columns-v1";
-  const activeScriptStorageKey = "funnel-tg-active-script-v1";
-  const [showColumns, setShowColumns] = useState<Record<string, boolean>>({
-    repeats: true,
-    date: true,
-    fullName: true,
-    rating: true,
-    phone: true,
-    source: true,
-    baseType: true,
-    manager: true,
-    comment: true,
-    niche: true,
-    nextContactDate: true,
-    email: true,
-    instagram: true,
-    telegram: true,
-    vk: true,
-    script: true,
-    invoiceAmount: true,
-    paidAmount: true,
-    bought: true
-  });
+  const columnsStorageKey = `funnel-tg-client-columns-v1-${projectSlot}`;
+  const activeScriptStorageKey = `funnel-tg-active-script-v1-${projectSlot}`;
+  const [showColumns, setShowColumns] = useState<Record<string, boolean>>(DEFAULT_SHOW_COLUMNS);
 
   const getStageTemplate = (stageId: StageId, idx: number) => stageScripts[stageId]?.[idx] || "";
   const buildScript = (client: Client) => {
@@ -235,24 +239,24 @@ export function ClientTable({
       const parsed = JSON.parse(raw) as Record<string, boolean>;
       setShowColumns((prev) => ({ ...prev, ...parsed }));
     } catch {
-      // ignore invalid stored value
+      // ignore
     }
   }, []);
 
   useEffect(() => {
     localStorage.setItem(columnsStorageKey, JSON.stringify(showColumns));
-  }, [showColumns]);
+  }, [showColumns, columnsStorageKey]);
 
   useEffect(() => {
     const raw = localStorage.getItem(activeScriptStorageKey);
     if (!raw) return;
     const n = Number(raw);
-    if (!Number.isNaN(n) && n >= 0 && n <= 4) setActiveScriptIndex(n);
+    if (!Number.isNaN(n) && n >= 0 && n <= 2) setActiveScriptIndex(n);
   }, []);
 
   useEffect(() => {
     localStorage.setItem(activeScriptStorageKey, String(activeScriptIndex));
-  }, [activeScriptIndex]);
+  }, [activeScriptIndex, activeScriptStorageKey]);
 
   const filtered = useMemo(
     () =>

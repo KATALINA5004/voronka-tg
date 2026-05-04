@@ -94,3 +94,7 @@ export type AppState = {
 };
 
 export type ActiveScreen = "dashboard" | "clients" | "calculator" | "settings";
+
+/** Три независимых рабочих проекта (отдельные базы и настройки в хранилище). */
+export const PROJECT_SLOT_IDS = ["slot1", "slot2", "slot3"] as const;
+export type ProjectSlotId = (typeof PROJECT_SLOT_IDS)[number];

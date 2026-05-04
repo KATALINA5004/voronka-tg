@@ -7,7 +7,8 @@ import { ImportModal } from "./components/ImportModal";
 import { Layout } from "./components/Layout";
 import { Settings } from "./components/Settings";
 import { emptyClient, useAppData } from "./store/useAppData";
-import { ActiveScreen, Client, StageId } from "./types";
+import { ActiveScreen, Client, ProjectSlotId, StageId } from "./types";
+import { loadProjectLabels, readSavedProjectSlot, saveProjectLabels, writeSavedProjectSlot } from "./utils/projectMeta";
 import { formatCallStatusCommentLine } from "./utils/callStatus";
 import { moveClientToEndOfTheirStage } from "./utils/clientOrder";
 import { mergeImportedClients } from "./utils/importExport";
@@ -15,7 +16,9 @@ import { AccessGate } from "./components/AccessGate";
 import { initTelegram } from "./utils/telegram";
 
 function App() {
-  const { state, actions } = useAppData();
+  const [projectSlot, setProjectSlot] = useState<ProjectSlotId>(() => readSavedProjectSlot());
+  const [projectLabels, setProjectLabels] = useState(() => loadProjectLabels());
+  const { state, actions } = useAppData(projectSlot);
   const [activeScreen, setActiveScreen] = useState<ActiveScreen>("dashboard");
   const [activeStageId, setActiveStageId] = useState<StageId>("stage1");
   const [modalClient, setModalClient] = useState<Client | null>(null);
@@ -25,11 +28,25 @@ function App() {
     initTelegram();
   }, []);
 
+  useEffect(() => {
+    writeSavedProjectSlot(projectSlot);
+  }, [projectSlot]);
+
+  const handleProjectSlotChange = (id: ProjectSlotId) => {
+    setProjectSlot(id);
+    setActiveScreen("dashboard");
+    setActiveStageId("stage1");
+    setModalClient(null);
+    setImportOpen(false);
+  };
+
   const screen = (() => {
     if (activeScreen === "dashboard") return <Dashboard clients={state.clients} settings={state.settings} plan={state.plan} />;
     if (activeScreen === "clients")
       return (
         <ClientTable
+          key={projectSlot}
+          projectSlot={projectSlot}
           clients={state.clients}
           stages={state.settings.stages}
           stageScripts={state.settings.stageScripts}
@@ -70,7 +87,13 @@ function App() {
     return (
       <Settings
         settings={state.settings}
+        projectSlot={projectSlot}
+        projectLabels={projectLabels}
         onSave={actions.updateSettings}
+        onSaveProjectLabels={(labels) => {
+          saveProjectLabels(labels);
+          setProjectLabels(labels);
+        }}
         onResetDemo={actions.resetDemo}
         onClearAll={actions.clearAll}
       />
@@ -79,7 +102,13 @@ function App() {
 
   return (
     <AccessGate>
-    <Layout activeScreen={activeScreen} onChange={setActiveScreen}>
+    <Layout
+      activeScreen={activeScreen}
+      onChange={setActiveScreen}
+      projectSlot={projectSlot}
+      projectLabels={projectLabels}
+      onProjectSlotChange={handleProjectSlotChange}
+    >
       {screen}
       {modalClient && (
         <ClientModal

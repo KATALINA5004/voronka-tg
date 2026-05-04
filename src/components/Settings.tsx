@@ -1,19 +1,36 @@
 import { useEffect, useState } from "react";
-import { Settings as SettingsType } from "../types";
+import { PROJECT_SLOT_IDS, ProjectSlotId, Settings as SettingsType } from "../types";
+import { projectTitle, type ProjectLabels } from "../utils/projectMeta";
 
 type Props = {
   settings: SettingsType;
+  projectSlot: ProjectSlotId;
+  projectLabels: ProjectLabels;
   onSave: (settings: SettingsType) => void;
+  onSaveProjectLabels: (labels: ProjectLabels) => void;
   onResetDemo: () => void;
   onClearAll: () => void;
 };
 
-export function Settings({ settings, onSave, onResetDemo, onClearAll }: Props) {
+export function Settings({
+  settings,
+  projectSlot,
+  projectLabels,
+  onSave,
+  onSaveProjectLabels,
+  onResetDemo,
+  onClearAll
+}: Props) {
   const [model, setModel] = useState(settings);
+  const [labelDraft, setLabelDraft] = useState<ProjectLabels>(projectLabels);
 
   useEffect(() => {
     setModel(settings);
   }, [settings]);
+
+  useEffect(() => {
+    setLabelDraft(projectLabels);
+  }, [projectLabels]);
 
   const setStageName = (index: number, name: string) => {
     setModel((prev) => ({
@@ -30,16 +47,54 @@ export function Settings({ settings, onSave, onResetDemo, onClearAll }: Props) {
       }
     }));
   };
-  const setTouchpointTypes = (raw: string) => {
-    const parsed = raw
-      .split("\n")
-      .map((v) => v.trim())
-      .filter(Boolean);
-    setModel((prev) => ({ ...prev, touchpointTypes: parsed.length ? parsed : ["звонок"] }));
+
+  const setTouchTypeAt = (index: number, value: string) => {
+    setModel((prev) => ({
+      ...prev,
+      touchpointTypes: prev.touchpointTypes.map((t, i) => (i === index ? value : t))
+    }));
+  };
+
+  const addTouchType = () => {
+    setModel((prev) => ({ ...prev, touchpointTypes: [...prev.touchpointTypes, ""] }));
+  };
+
+  const removeTouchType = (index: number) => {
+    setModel((prev) => {
+      if (prev.touchpointTypes.length <= 1) return prev;
+      return { ...prev, touchpointTypes: prev.touchpointTypes.filter((_, i) => i !== index) };
+    });
+  };
+
+  const saveAll = () => {
+    const cleaned = model.touchpointTypes.map((t) => t.trim()).filter(Boolean);
+    onSave({
+      ...model,
+      touchpointTypes: cleaned.length ? cleaned : ["звонок"]
+    });
+    onSaveProjectLabels(labelDraft);
   };
 
   return (
     <div className="stack">
+      <section className="card">
+        <p className="hint-muted" style={{ marginTop: 0 }}>
+          Сейчас настройки и база относятся к: <strong>{projectTitle(projectSlot, projectLabels)}</strong>. Переключение — кнопки вверху экрана.
+        </p>
+      </section>
+      <section className="card form-grid">
+        <h3 className="full-width-heading">Названия проектов (кнопки переключения)</h3>
+        {PROJECT_SLOT_IDS.map((id) => (
+          <label key={id}>
+            {projectTitle(id, labelDraft)} — подпись на кнопке
+            <input
+              value={labelDraft[id]}
+              onChange={(e) => setLabelDraft((d) => ({ ...d, [id]: e.target.value }))}
+              placeholder={`Проект ${PROJECT_SLOT_IDS.indexOf(id) + 1}`}
+            />
+          </label>
+        ))}
+      </section>
       <section className="card form-grid">
         <label>Название этапа 1<input value={model.stages[0]?.name || ""} onChange={(e) => setStageName(0, e.target.value)} /></label>
         <label>Название этапа 2<input value={model.stages[1]?.name || ""} onChange={(e) => setStageName(1, e.target.value)} /></label>
@@ -67,18 +122,27 @@ export function Settings({ settings, onSave, onResetDemo, onClearAll }: Props) {
       </section>
       <section className="card">
         <h3>Типы касаний</h3>
-        <label>
-          По одному типу на строку
-          <textarea
-            value={model.touchpointTypes.join("\n")}
-            onChange={(e) => setTouchpointTypes(e.target.value)}
-            placeholder={"звонок\nсообщение\nвстреча"}
-          />
-        </label>
+        <p className="hint-muted">У каждого типа своё поле — можно написать несколько слов. Минимум один тип.</p>
+        <div className="touch-types-editor">
+          {model.touchpointTypes.map((tp, idx) => (
+            <div key={idx} className="touch-type-row">
+              <label>
+                Тип {idx + 1}
+                <input value={tp} onChange={(e) => setTouchTypeAt(idx, e.target.value)} placeholder="Например: Исходящий звонок" />
+              </label>
+              <button type="button" className="ghost touch-type-remove" onClick={() => removeTouchType(idx)} disabled={model.touchpointTypes.length <= 1}>
+                Удалить
+              </button>
+            </div>
+          ))}
+        </div>
+        <button type="button" className="ghost touch-type-add" onClick={addTouchType}>
+          + Добавить тип касания
+        </button>
       </section>
       <section className="card">
         <div className="toolbar">
-          <button onClick={() => onSave(model)}>Сохранить</button>
+          <button onClick={saveAll}>Сохранить</button>
           <button onClick={onResetDemo}>Сбросить в пустую базу</button>
           <button className="danger-btn" onClick={onClearAll}>Удалить все данные</button>
         </div>

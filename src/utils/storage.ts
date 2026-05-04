@@ -1,6 +1,11 @@
-import { AppState, Client, Settings, Stage, StageId, StageScripts } from "../types";
+import { AppState, Client, ProjectSlotId, Settings, Stage, StageId, StageScripts } from "../types";
 
-export const STORAGE_KEY = "funnel-tg-app-state-v1";
+/** Старый ключ: при первом открытии слота 1 данные переносятся сюда. */
+export const LEGACY_STORAGE_KEY = "funnel-tg-app-state-v1";
+
+export function getProjectStorageKey(projectId: ProjectSlotId): string {
+  return `funnel-tg-app-state-v1-${projectId}`;
+}
 
 const defaultStagesEmpty: Stage[] = [
   { id: "stage1", name: "Потенциальные", color: "#ffd966" },
@@ -178,8 +183,24 @@ function migrateParsed(parsed: AppState): AppState {
   return { ...parsed, settings, clients, plan: normalizePlan(parsed.plan) };
 }
 
-export function loadState(): AppState {
-  const raw = localStorage.getItem(STORAGE_KEY);
+function migrateLegacyToSlot1(): void {
+  const newKey = getProjectStorageKey("slot1");
+  if (localStorage.getItem(newKey)) return;
+  const legacy = localStorage.getItem(LEGACY_STORAGE_KEY);
+  if (!legacy) return;
+  try {
+    JSON.parse(legacy) as AppState;
+    localStorage.setItem(newKey, legacy);
+    localStorage.removeItem(LEGACY_STORAGE_KEY);
+  } catch {
+    // ignore corrupt legacy
+  }
+}
+
+export function loadState(projectId: ProjectSlotId): AppState {
+  if (projectId === "slot1") migrateLegacyToSlot1();
+  const key = getProjectStorageKey(projectId);
+  const raw = localStorage.getItem(key);
   if (!raw) return initialEmptyState;
   try {
     const parsed = JSON.parse(raw) as AppState;
@@ -189,10 +210,10 @@ export function loadState(): AppState {
   }
 }
 
-export function saveState(state: AppState): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+export function saveState(projectId: ProjectSlotId, state: AppState): void {
+  localStorage.setItem(getProjectStorageKey(projectId), JSON.stringify(state));
 }
 
-export function clearState(): void {
-  localStorage.removeItem(STORAGE_KEY);
+export function clearState(projectId: ProjectSlotId): void {
+  localStorage.removeItem(getProjectStorageKey(projectId));
 }
