@@ -10,7 +10,7 @@ import { emptyClient, useAppData } from "./store/useAppData";
 import { ActiveScreen, Client, StageId } from "./types";
 import { mergeImportedClients } from "./utils/importExport";
 import { AccessGate } from "./components/AccessGate";
-import { initTelegram, resolveOwnerTgId } from "./utils/telegram";
+import { initTelegram } from "./utils/telegram";
 
 function App() {
   const { state, actions } = useAppData();
@@ -18,11 +18,9 @@ function App() {
   const [activeStageId, setActiveStageId] = useState<StageId>("stage1");
   const [modalClient, setModalClient] = useState<Client | null>(null);
   const [importOpen, setImportOpen] = useState(false);
-  const [ownerTgId, setOwnerTgId] = useState<number | null>(() => resolveOwnerTgId());
 
   useEffect(() => {
     initTelegram();
-    setOwnerTgId(resolveOwnerTgId());
   }, []);
 
   const screen = (() => {
@@ -67,7 +65,7 @@ function App() {
   })();
 
   return (
-    <AccessGate ownerTgId={ownerTgId}>
+    <AccessGate>
     <Layout activeScreen={activeScreen} onChange={setActiveScreen}>
       {screen}
       {modalClient && (

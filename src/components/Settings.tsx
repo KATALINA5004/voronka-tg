@@ -82,7 +82,7 @@ export function Settings({ settings, onSave, onResetDemo, onClearAll }: Props) {
           <button onClick={onResetDemo}>Сбросить в пустую базу</button>
           <button className="danger-btn" onClick={onClearAll}>Удалить все данные</button>
         </div>
-        <p className="muted small">Экспорт и импорт полной базы отключены: один доступ на аккаунт Telegram, без передачи проекта файлами.</p>
+        <p className="muted small">Экспорт и импорт полной базы отключены. Вход — по одноразовому коду с экрана входа.</p>
       </section>
     </div>
   );
