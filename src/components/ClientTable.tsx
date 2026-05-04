@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Client, Stage, StageId, StageScripts } from "../types";
+import { CALL_STATUS_CODES, CallStatusCode } from "../utils/callStatus";
 import { EmptyState } from "./EmptyState";
 import { Inbox } from "lucide-react";
 
@@ -16,6 +17,7 @@ type Props = {
   onApplyScriptToStage: (stageId: Stage["id"], scriptVariantIndex: number) => void;
   onDelete: (id: string) => void;
   onOpenImport: () => void;
+  onQuickCallStatus: (clientId: string, code: CallStatusCode) => void;
 };
 
 type ClientColumn = {
@@ -96,7 +98,8 @@ export function ClientTable({
   onSelectScript,
   onApplyScriptToStage,
   onDelete,
-  onOpenImport
+  onOpenImport,
+  onQuickCallStatus
 }: Props) {
   const [search, setSearch] = useState("");
   const [manager, setManager] = useState("");
@@ -158,6 +161,45 @@ export function ClientTable({
     const paid = scoped.filter((c) => c.stageId === "stage5" || c.paidAmount > 0).length;
     return { idx, total: scoped.length, paid, conversion: scoped.length ? (paid / scoped.length) * 100 : 0 };
   });
+
+  const renderCommentCell = (c: Client) => {
+    const touches = [...(c.touchpoints || [])].sort((a, b) => +new Date(b.date) - +new Date(a.date));
+    return (
+      <div className="comment-cell" onClick={(e) => e.stopPropagation()}>
+        <div className="call-status-bar table-comment-status">
+          <span className="call-status-label">Быстрый статус звонка:</span>
+          {CALL_STATUS_CODES.map((code) => (
+            <button
+              key={code}
+              type="button"
+              className="chip-btn chip-btn--sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                onQuickCallStatus(c.id, code);
+              }}
+            >
+              {code}
+            </button>
+          ))}
+        </div>
+        {c.comment?.trim() ? <pre className="comment-cell-text">{c.comment.trim()}</pre> : null}
+        {touches.length > 0 ? (
+          <div className="touch-inline-history">
+            <div className="touch-inline-title">История касаний</div>
+            {touches.map((tp) => (
+              <div key={tp.id} className="touch-inline-item">
+                <span className="touch-inline-meta">
+                  {new Date(tp.date).toLocaleString("ru-RU")} · {tp.type}
+                </span>
+                <div className="touch-inline-text">{tp.text}</div>
+              </div>
+            ))}
+          </div>
+        ) : null}
+      </div>
+    );
+  };
+
   const columns: ClientColumn[] = [
     { key: "repeats", title: "Повторы", render: (c: Client) => c.repeats },
     { key: "date", title: "Дата", render: (c: Client) => (c.date ? new Date(c.date).toLocaleDateString("ru-RU") : "") },
@@ -167,7 +209,7 @@ export function ClientTable({
     { key: "source", title: "Откуда узнал", render: (c: Client) => c.source },
     { key: "baseType", title: "Тип базы", render: (c: Client) => c.baseType || "-" },
     { key: "manager", title: "Менеджер", render: (c: Client) => c.manager },
-    { key: "comment", title: "Комментарий", render: (c: Client) => c.comment },
+    { key: "comment", title: "Комментарий", render: (c: Client) => renderCommentCell(c) },
     { key: "niche", title: "Ниша", render: (c: Client) => c.niche },
     {
       key: "nextContactDate",

@@ -8,6 +8,8 @@ import { Layout } from "./components/Layout";
 import { Settings } from "./components/Settings";
 import { emptyClient, useAppData } from "./store/useAppData";
 import { ActiveScreen, Client, StageId } from "./types";
+import { formatCallStatusCommentLine } from "./utils/callStatus";
+import { moveClientToEndOfTheirStage } from "./utils/clientOrder";
 import { mergeImportedClients } from "./utils/importExport";
 import { AccessGate } from "./components/AccessGate";
 import { initTelegram } from "./utils/telegram";
@@ -50,6 +52,17 @@ function App() {
           }}
           onDelete={actions.deleteClient}
           onOpenImport={() => setImportOpen(true)}
+          onQuickCallStatus={(clientId, code) => {
+            const client = state.clients.find((c) => c.id === clientId);
+            if (!client) return;
+            const line = formatCallStatusCommentLine(code);
+            const base = (client.comment || "").trimEnd();
+            const updated: Client = {
+              ...client,
+              comment: base ? `${base}\n${line}` : line
+            };
+            actions.setClients(moveClientToEndOfTheirStage(state.clients, updated));
+          }}
         />
       );
     if (activeScreen === "calculator")

@@ -15,7 +15,7 @@ export function AccessGate({ children }: Props) {
     setError("");
     const normalized = normalizeInviteCodeInput(code);
     if (!normalized) {
-      setError("Введите 12 символов (буквы и цифры), например M7KQ-2H9P-4VNC.");
+      setError("Нужно ровно 12 латинских букв и цифр (дефисы можно, можно без них).");
       return;
     }
     const result = redeemInviteCode(normalized);
@@ -38,7 +38,7 @@ export function AccessGate({ children }: Props) {
       <div className="access-card">
         <h2>Вход по коду</h2>
         <p className="muted">
-          Введите одноразовый код доступа. Один код — один вход с этого устройства; повторно тот же код использовать нельзя.
+          Введите выданный вам одноразовый код. Без кода войти нельзя. Один код — один вход с этого устройства, повторно тот же код не сработает.
         </p>
         <form className="access-form" onSubmit={onSubmit}>
           <label>
@@ -48,11 +48,11 @@ export function AccessGate({ children }: Props) {
               autoComplete="off"
               autoCapitalize="characters"
               spellCheck={false}
-              placeholder="M7KQ-2H9P-4VNC"
               value={code}
               onChange={(e) => setCode(e.target.value)}
             />
           </label>
+          <p className="hint-muted">12 латинских букв и цифр, можно с дефисами по четыре знака.</p>
           {error && <p className="access-error">{error}</p>}
           <button type="submit">Войти</button>
         </form>
