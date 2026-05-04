@@ -12,6 +12,9 @@ export const mapDictionary: Record<string, keyof Client> = {
   "рейтинг": "rating",
   "откуда узнал": "source",
   "источник": "source",
+  "тип базы": "baseType",
+  "база": "baseType",
+  "откуда база": "baseType",
   "менеджер": "manager",
   "кто работает": "manager",
   "комментарий": "comment",
@@ -61,7 +64,7 @@ export function detectMap(row: Record<string, unknown>) {
   return mapping;
 }
 
-export function mergeImportedClients(existing: Client[], rows: Record<string, unknown>[], stageId: StageId) {
+export function mergeImportedClients(existing: Client[], rows: Record<string, unknown>[], stageId: StageId, baseType = "") {
   const result = [...existing];
   rows.forEach((row, i) => {
     const mapping = detectMap(row);
@@ -70,6 +73,7 @@ export function mergeImportedClients(existing: Client[], rows: Record<string, un
       if (!target) return;
       mapped[target] = row[source] as never;
     });
+    if (!mapped.baseType && baseType.trim()) mapped.baseType = baseType.trim();
     const dedupe = result.find(
       (c) =>
         (mapped.phone && c.phone && c.phone === mapped.phone) ||
@@ -94,6 +98,7 @@ export function mergeImportedClients(existing: Client[], rows: Record<string, un
       rating: mapped.rating ? Number(mapped.rating) : null,
       phone: String(mapped.phone || ""),
       source: String(mapped.source || ""),
+      baseType: String(mapped.baseType || baseType || ""),
       manager: String(mapped.manager || ""),
       comment: String(mapped.comment || ""),
       niche: String(mapped.niche || ""),
@@ -106,46 +111,20 @@ export function mergeImportedClients(existing: Client[], rows: Record<string, un
       paidAmount: toNum(mapped.paidAmount),
       repeats: toNum(mapped.repeats),
       bought: mapped.bought ? toBool(mapped.bought) : false,
+      scriptVariantIndex: null,
+      scriptStageId: null,
+      scriptHistory: [],
       touchpoints: []
     });
   });
   return result.map((c) => ({
     ...c,
+    scriptHistory: c.scriptHistory ?? [],
     invoiceAmount: toNum(c.invoiceAmount),
     paidAmount: toNum(c.paidAmount),
     repeats: toNum(c.repeats),
     rating: c.rating === null ? null : Number(c.rating) || null,
-    bought: c.stageId === "stage4" ? true : c.bought || c.paidAmount > 0
+    bought: c.stageId === "stage5" ? true : c.bought || c.paidAmount > 0
   }));
 }
 
-export function exportClientsCsv(clients: Client[]) {
-  const csv = Papa.unparse(
-    clients.map((c) => ({
-      "Повторы": c.repeats,
-      "Дата": c.date,
-      "Имя Фамилия": c.fullName,
-      "Рейтинг": c.rating ?? "",
-      "Телефон": c.phone,
-      "Откуда узнал": c.source,
-      "Менеджер": c.manager,
-      "Комментарий": c.comment,
-      "Ниша": c.niche,
-      "Дата следующего контакта": c.nextContactDate,
-      "Почта": c.email,
-      "Инстаграм": c.instagram,
-      "Телеграм": c.telegram,
-      "ВКонтакте": c.vk,
-      "Счет": c.invoiceAmount,
-      "Оплачено": c.paidAmount,
-      "Купил": c.bought ? "да" : "нет"
-    }))
-  );
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "clients-export.csv";
-  a.click();
-  URL.revokeObjectURL(url);
-}

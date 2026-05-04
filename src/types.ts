@@ -1,4 +1,4 @@
-export type StageId = "stage1" | "stage2" | "stage3" | "stage4";
+export type StageId = "stage1" | "stage2" | "stage3" | "stage4" | "stage5";
 
 export type Stage = {
   id: StageId;
@@ -6,11 +6,22 @@ export type Stage = {
   color: string;
 };
 
+export type StageScripts = Record<StageId, string[]>;
+
 export type Touchpoint = {
   id: string;
   date: string;
   type: string;
   text: string;
+};
+
+/** Фиксация использования скрипта (какой вариант на каком этапе и текст на момент сохранения). */
+export type ScriptHistoryEntry = {
+  id: string;
+  at: string;
+  stageId: StageId;
+  variantIndex: number;
+  templateText: string;
 };
 
 export type Client = {
@@ -23,6 +34,8 @@ export type Client = {
   rating: number | null;
   phone: string;
   source: string;
+  /** Тип/источник базы: например "TG канал", "CRM", "Партнеры" */
+  baseType: string;
   manager: string;
   comment: string;
   niche: string;
@@ -35,18 +48,32 @@ export type Client = {
   paidAmount: number;
   repeats: number;
   bought: boolean;
+  /** 0–2: какой из 3 шаблонов этапа выбран; null — не выбран */
+  scriptVariantIndex: number | null;
+  /** На каком этапе выбран/зафиксирован скрипт */
+  scriptStageId: StageId | null;
+  /** Все зафиксированные варианты скриптов по ходу работы */
+  scriptHistory: ScriptHistoryEntry[];
   touchpoints: Touchpoint[];
 };
 
 export type Plan = {
+  /** Название плана */
   period: string;
-  plannedLeads: number;
-  conversion1: number;
-  conversion2: number;
+  /** Дата старта плана */
+  startDate: string;
+  /** Дата дедлайна плана */
+  endDate: string;
+  /** Цель по чистой прибыли */
+  targetProfit: number;
   averageCheck: number;
   profitability: number;
-  targetRevenue: number;
-  targetProfit: number;
+  /** Сколько оплат нужно для targetProfit */
+  targetPaidClients: number;
+  conversion4to5: number;
+  conversion3to4: number;
+  conversion2to3: number;
+  conversion1to2: number;
 };
 
 export type Settings = {
@@ -54,6 +81,10 @@ export type Settings = {
   currency: string;
   defaultAverageCheck: number;
   defaultProfitability: number;
+  /** По 3 шаблона на каждый этап; используйте {имя} */
+  stageScripts: StageScripts;
+  /** Набор типов касаний для карточки клиента */
+  touchpointTypes: string[];
 };
 
 export type AppState = {

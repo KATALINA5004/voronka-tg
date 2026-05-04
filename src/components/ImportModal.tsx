@@ -5,11 +5,12 @@ import { parseImportFile } from "../utils/importExport";
 type Props = {
   stages: Stage[];
   onClose: () => void;
-  onImport: (rows: Record<string, unknown>[], stageId: Stage["id"]) => void;
+  onImport: (rows: Record<string, unknown>[], stageId: Stage["id"], baseType: string) => void;
 };
 
 export function ImportModal({ stages, onClose, onImport }: Props) {
   const [stageId, setStageId] = useState<Stage["id"]>("stage1");
+  const [baseType, setBaseType] = useState("");
   const [rows, setRows] = useState<Record<string, unknown>[]>([]);
   const [headers, setHeaders] = useState<string[]>([]);
 
@@ -21,6 +22,10 @@ export function ImportModal({ stages, onClose, onImport }: Props) {
           <select value={stageId} onChange={(e) => setStageId(e.target.value as Stage["id"])}>
             {stages.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
           </select>
+        </label>
+        <label>
+          Тип базы (откуда загрузка)
+          <input value={baseType} onChange={(e) => setBaseType(e.target.value)} placeholder="Например: Telegram канал, CRM, Excel партнера" />
         </label>
         <input
           type="file"
@@ -45,7 +50,7 @@ export function ImportModal({ stages, onClose, onImport }: Props) {
         )}
         <div className="row end">
           <button className="ghost" onClick={onClose}>Отмена</button>
-          <button onClick={() => onImport(rows, stageId)} disabled={!rows.length}>Импортировать</button>
+          <button onClick={() => onImport(rows, stageId, baseType.trim())} disabled={!rows.length}>Импортировать</button>
         </div>
       </div>
     </div>

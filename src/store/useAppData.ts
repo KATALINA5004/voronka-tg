@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
-import { demoData } from "../data/demoData";
 import { AppState, Client, Plan, Settings, StageId, Touchpoint } from "../types";
-import { clearState, loadState, saveState } from "../utils/storage";
+import { mergeScriptHistoryOnScriptChange } from "../utils/clientScriptHistory";
+import { clearState, initialEmptyState, loadState, saveState } from "../utils/storage";
 
 export function emptyClient(stageId: StageId): Client {
   const now = new Date().toISOString();
@@ -15,6 +15,7 @@ export function emptyClient(stageId: StageId): Client {
     rating: null,
     phone: "",
     source: "",
+    baseType: "",
     manager: "",
     comment: "",
     niche: "",
@@ -27,6 +28,9 @@ export function emptyClient(stageId: StageId): Client {
     paidAmount: 0,
     repeats: 0,
     bought: false,
+    scriptVariantIndex: null,
+    scriptStageId: null,
+    scriptHistory: [],
     touchpoints: []
   };
 }
@@ -42,15 +46,21 @@ export function useAppData() {
   const actions = useMemo(
     () => ({
       setClients(clients: Client[]) {
-        setPersisted({ ...state, clients });
+        const merged = clients.map((c) => {
+          const prev = state.clients.find((x) => x.id === c.id);
+          return mergeScriptHistoryOnScriptChange(prev, c, state.settings.stageScripts);
+        });
+        setPersisted({ ...state, clients: merged });
       },
       upsertClient(client: Client) {
         const next = [...state.clients];
         const idx = next.findIndex((c) => c.id === client.id);
+        const prev = idx === -1 ? undefined : next[idx];
+        const withHistory = mergeScriptHistoryOnScriptChange(prev, client, state.settings.stageScripts);
         const normalized = {
-          ...client,
+          ...withHistory,
           updatedAt: new Date().toISOString(),
-          bought: client.stageId === "stage4" ? true : client.bought || client.paidAmount > 0
+          bought: withHistory.stageId === "stage5" ? true : withHistory.bought || withHistory.paidAmount > 0
         };
         if (idx === -1) next.unshift(normalized);
         else next[idx] = normalized;
@@ -61,7 +71,7 @@ export function useAppData() {
       },
       moveClient(id: string, stageId: StageId) {
         const next = state.clients.map((c) =>
-          c.id === id ? { ...c, stageId, bought: stageId === "stage4" ? true : c.bought, updatedAt: new Date().toISOString() } : c
+          c.id === id ? { ...c, stageId, bought: stageId === "stage5" ? true : c.bought, updatedAt: new Date().toISOString() } : c
         );
         setPersisted({ ...state, clients: next });
       },
@@ -78,30 +88,12 @@ export function useAppData() {
         setPersisted({ ...state, plan });
       },
       resetDemo() {
-        setPersisted(demoData);
+        setPersisted(initialEmptyState);
       },
       clearAll() {
         clearState();
-        setPersisted({ ...demoData, clients: [] });
+        setPersisted(initialEmptyState);
       },
-      importJson(raw: string) {
-        try {
-          const parsed = JSON.parse(raw) as AppState;
-          setPersisted(parsed);
-          return true;
-        } catch {
-          return false;
-        }
-      },
-      exportJson() {
-        const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "voronka-tg-data.json";
-        a.click();
-        URL.revokeObjectURL(url);
-      }
     }),
     [state]
   );

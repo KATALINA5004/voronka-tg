@@ -8,6 +8,7 @@ type TelegramWebApp = {
   };
   initDataUnsafe?: {
     user?: {
+      id?: number;
       first_name?: string;
       last_name?: string;
       username?: string;
@@ -42,4 +43,22 @@ export function getTelegramUser() {
   return {
     name: [user.first_name, user.last_name].filter(Boolean).join(" ") || user.username || "Пользователь"
   };
+}
+
+/** ID пользователя Telegram Mini App; вне WebApp — null (в dev см. resolveOwnerTgId). */
+export function getTelegramUserId(): number | null {
+  const id = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
+  return typeof id === "number" ? id : null;
+}
+
+/**
+ * Числовой идентификатор владельца для привязки пароля.
+ * В production без Telegram — null (вход недоступен).
+ * В development без WebApp — 0 (локальная привязка).
+ */
+export function resolveOwnerTgId(): number | null {
+  const id = getTelegramUserId();
+  if (id !== null) return id;
+  if (import.meta.env.DEV) return 0;
+  return null;
 }

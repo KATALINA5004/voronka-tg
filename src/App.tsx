@@ -7,19 +7,22 @@ import { ImportModal } from "./components/ImportModal";
 import { Layout } from "./components/Layout";
 import { Settings } from "./components/Settings";
 import { emptyClient, useAppData } from "./store/useAppData";
-import { ActiveScreen, Client } from "./types";
+import { ActiveScreen, Client, StageId } from "./types";
 import { mergeImportedClients } from "./utils/importExport";
-import { initTelegram } from "./utils/telegram";
+import { AccessGate } from "./components/AccessGate";
+import { initTelegram, resolveOwnerTgId } from "./utils/telegram";
 
 function App() {
   const { state, actions } = useAppData();
   const [activeScreen, setActiveScreen] = useState<ActiveScreen>("dashboard");
-  const [activeStageId, setActiveStageId] = useState<"stage1" | "stage2" | "stage3" | "stage4">("stage1");
+  const [activeStageId, setActiveStageId] = useState<StageId>("stage1");
   const [modalClient, setModalClient] = useState<Client | null>(null);
   const [importOpen, setImportOpen] = useState(false);
+  const [ownerTgId, setOwnerTgId] = useState<number | null>(() => resolveOwnerTgId());
 
   useEffect(() => {
     initTelegram();
+    setOwnerTgId(resolveOwnerTgId());
   }, []);
 
   const screen = (() => {
@@ -29,11 +32,24 @@ function App() {
         <ClientTable
           clients={state.clients}
           stages={state.settings.stages}
+          stageScripts={state.settings.stageScripts}
           activeStageId={activeStageId}
           onStageTabChange={setActiveStageId}
           onAdd={() => setModalClient(emptyClient(activeStageId))}
           onOpen={setModalClient}
           onMove={actions.moveClient}
+          onSelectScript={(id, scriptVariantIndex) => {
+            const client = state.clients.find((c) => c.id === id);
+            if (!client) return;
+            actions.upsertClient({ ...client, scriptVariantIndex, scriptStageId: client.stageId });
+          }}
+          onApplyScriptToStage={(stageId, scriptVariantIndex) => {
+            actions.setClients(
+              state.clients.map((client) =>
+                client.stageId === stageId ? { ...client, scriptVariantIndex, scriptStageId: stageId } : client
+              )
+            );
+          }}
           onDelete={actions.deleteClient}
           onOpenImport={() => setImportOpen(true)}
         />
@@ -46,19 +62,19 @@ function App() {
         onSave={actions.updateSettings}
         onResetDemo={actions.resetDemo}
         onClearAll={actions.clearAll}
-        onExportJson={actions.exportJson}
-        onImportJson={actions.importJson}
       />
     );
   })();
 
   return (
+    <AccessGate ownerTgId={ownerTgId}>
     <Layout activeScreen={activeScreen} onChange={setActiveScreen}>
       {screen}
       {modalClient && (
         <ClientModal
           client={modalClient}
           stages={state.settings.stages}
+          settings={state.settings}
           onClose={() => setModalClient(null)}
           onSave={(client) => {
             actions.upsertClient(client);
@@ -71,13 +87,14 @@ function App() {
         <ImportModal
           stages={state.settings.stages}
           onClose={() => setImportOpen(false)}
-          onImport={(rows, stageId) => {
-            actions.setClients(mergeImportedClients(state.clients, rows, stageId));
+          onImport={(rows, stageId, baseType) => {
+            actions.setClients(mergeImportedClients(state.clients, rows, stageId, baseType));
             setImportOpen(false);
           }}
         />
       )}
     </Layout>
+    </AccessGate>
   );
 }
 
