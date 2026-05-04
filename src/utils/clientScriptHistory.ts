@@ -1,35 +1,38 @@
 import { Client, ScriptHistoryEntry, StageScripts } from "../types";
 
-function baseHistory(prev: Client | undefined, incoming: Client): ScriptHistoryEntry[] {
-  if (prev?.scriptHistory?.length) return [...prev.scriptHistory];
-  if (incoming.scriptHistory?.length) return [...incoming.scriptHistory];
-  return [];
+/** При любых правках без смены этапа — не теряем уже накопленную историю скриптов. */
+export function preserveClientScriptHistory(prev: Client | undefined, incoming: Client): Client {
+  const hist = prev?.scriptHistory?.length
+    ? [...prev.scriptHistory]
+    : [...(incoming.scriptHistory || [])];
+  return { ...incoming, scriptHistory: hist };
 }
 
-export function mergeScriptHistoryOnScriptChange(
-  prev: Client | undefined,
-  incoming: Client,
+/**
+ * Добавляет запись в историю только при переходе на другой этап,
+ * если к моменту ухода был выбран скрипт (вариант + этап скрипта).
+ */
+export function appendScriptHistoryWhenLeavingStage(
+  prev: Client,
+  clientAfter: Client,
   stageScripts: StageScripts
 ): Client {
-  const same =
-    (prev?.scriptVariantIndex ?? null) === (incoming.scriptVariantIndex ?? null) &&
-    (prev?.scriptStageId ?? null) === (incoming.scriptStageId ?? null);
-  const hist = baseHistory(prev, incoming);
-  if (same) {
-    return { ...incoming, scriptHistory: hist };
+  const hist = [...(prev.scriptHistory || [])];
+  if (prev.stageId === clientAfter.stageId) {
+    return { ...clientAfter, scriptHistory: hist };
   }
-  const vi = incoming.scriptVariantIndex;
-  const sid = incoming.scriptStageId;
+  const vi = prev.scriptVariantIndex;
+  const sid = prev.scriptStageId;
   if (vi === null || vi === undefined || sid === null || sid === undefined) {
-    return { ...incoming, scriptHistory: hist };
+    return { ...clientAfter, scriptHistory: hist };
   }
   const templateText = stageScripts[sid]?.[vi] ?? "";
-  const entry = {
+  const entry: ScriptHistoryEntry = {
     id: `sh-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
     at: new Date().toISOString(),
     stageId: sid,
     variantIndex: vi,
     templateText
   };
-  return { ...incoming, scriptHistory: [...hist, entry] };
+  return { ...clientAfter, scriptHistory: [...hist, entry] };
 }

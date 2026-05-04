@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AppState, Client, Plan, ProjectSlotId, Settings, StageId, Touchpoint } from "../types";
 import { isCloudSyncConfigured, pullWorkspace, pushWorkspace } from "../utils/cloudWorkspace";
-import { mergeScriptHistoryOnScriptChange } from "../utils/clientScriptHistory";
+import { appendScriptHistoryWhenLeavingStage, preserveClientScriptHistory } from "../utils/clientScriptHistory";
 import { clearStateLocal, initialEmptyState, loadStateLocal, saveStateLocal } from "../utils/storage";
 
 export function emptyClient(stageId: StageId): Client {
@@ -90,7 +90,7 @@ export function useAppData(accountLogin: string, projectSlot: ProjectSlotId) {
       setClients(clients: Client[]) {
         const merged = clients.map((c) => {
           const prev = state.clients.find((x) => x.id === c.id);
-          return mergeScriptHistoryOnScriptChange(prev, c, state.settings.stageScripts);
+          return preserveClientScriptHistory(prev, c);
         });
         setPersisted({ ...state, clients: merged });
       },
@@ -98,7 +98,10 @@ export function useAppData(accountLogin: string, projectSlot: ProjectSlotId) {
         const next = [...state.clients];
         const idx = next.findIndex((c) => c.id === client.id);
         const prev = idx === -1 ? undefined : next[idx];
-        const withHistory = mergeScriptHistoryOnScriptChange(prev, client, state.settings.stageScripts);
+        const withHistory =
+          prev && prev.stageId !== client.stageId
+            ? appendScriptHistoryWhenLeavingStage(prev, client, state.settings.stageScripts)
+            : preserveClientScriptHistory(prev, client);
         const normalized = {
           ...withHistory,
           updatedAt: new Date().toISOString(),
@@ -112,9 +115,16 @@ export function useAppData(accountLogin: string, projectSlot: ProjectSlotId) {
         setPersisted({ ...state, clients: state.clients.filter((c) => c.id !== id) });
       },
       moveClient(id: string, stageId: StageId) {
-        const next = state.clients.map((c) =>
-          c.id === id ? { ...c, stageId, bought: stageId === "stage5" ? true : c.bought, updatedAt: new Date().toISOString() } : c
-        );
+        const next = state.clients.map((c) => {
+          if (c.id !== id) return c;
+          const moved = {
+            ...c,
+            stageId,
+            bought: stageId === "stage5" ? true : c.bought,
+            updatedAt: new Date().toISOString()
+          };
+          return appendScriptHistoryWhenLeavingStage(c, moved, state.settings.stageScripts);
+        });
         setPersisted({ ...state, clients: next });
       },
       addTouchpoint(clientId: string, tp: Touchpoint) {
